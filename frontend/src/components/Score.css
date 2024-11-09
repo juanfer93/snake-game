@@ -1,0 +1,36 @@
+.score-container {
+  display: flex;
+  flex-direction: column; /* Apilar los puntajes uno encima del otro */
+  justify-content: center;
+  align-items: center;
+  font-family: 'Arial', sans-serif;
+  position: absolute; /* Permitir posicionar fuera del tablero */
+  top: 10px; /* Ajusta la distancia desde la parte superior de la ventana */
+  left: 50%; /* Centrado horizontal */
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.static-text {
+  font-size: 24px;
+  color: #fff;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5); /* Sombra para un efecto de profundidad */
+}
+
+.score-number {
+  margin-left: 5px;
+  font-size: 26px;
+  font-weight: bold;
+  color: #00ff1a; /* Color vibrante */
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+.show {
+  opacity: 1;
+  transform: scale(1.2); /* Aumenta de tamaño durante la animación */
+}
+
+.score-number:not(.show) {
+  opacity: 0.8; /* Ligera transparencia cuando no está animado */
+  transform: scale(1); /* Escala normal cuando no está animado */
+}
