@@ -93,16 +93,15 @@ const GameBoard: React.FC = () => {
 
   
   useEffect(() => {
-    fetch('http://localhost:3001/api/highscore/get')
+    fetch(`${process.env.REACT_APP_API_URL}/highscore/get`)
       .then((response) => response.json())
       .then((data) => setHighscore(data.highscore))
       .catch((error) => console.error('Error fetching highscore:', error));
   }, []);
-
   
   useEffect(() => {
     if (score > highscore) {
-      fetch('http://localhost:3001/api/highscore/post', {
+      fetch(`${process.env.REACT_APP_API_URL}/highscore/post`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ highscore: score }),
@@ -111,9 +110,8 @@ const GameBoard: React.FC = () => {
         .then((data) => setHighscore(data.highscore))
         .catch((error) => console.error('Error updating highscore:', error));
     }
-  }, [score]);
+  }, [score]);  
 
-  
   useInterval(() => {
     if (isPaused || gameOver) return;
 
