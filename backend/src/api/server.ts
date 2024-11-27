@@ -7,12 +7,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Ruta al archivo JSON
 const highscoreFile = path.resolve('./public/highscore.json');
 
+// Verifica que el archivo existe al iniciar
 if (!fs.existsSync(highscoreFile)) {
-  fs.writeFileSync(highscoreFile, JSON.stringify({ highscore: 0 }), 'utf8'); 
+  fs.writeFileSync(highscoreFile, JSON.stringify({ highscore: 0 }), 'utf8');
 }
 
+// Endpoint para obtener el highscore
 app.get('/api/highscore/get', (req, res) => {
   fs.readFile(highscoreFile, 'utf8', (err, data) => {
     if (err) {
@@ -22,8 +25,9 @@ app.get('/api/highscore/get', (req, res) => {
   });
 });
 
+// Endpoint para actualizar el highscore
 app.post('/api/highscore/post', (req, res) => {
-  const { highscore: newHighscore } = req.body;
+  const { highscore } = req.body;
 
   fs.readFile(highscoreFile, 'utf8', (err, data) => {
     if (err) {
@@ -32,12 +36,12 @@ app.post('/api/highscore/post', (req, res) => {
 
     const currentHighscore = JSON.parse(data).highscore;
 
-    if (newHighscore > currentHighscore) {
-      fs.writeFile(highscoreFile, JSON.stringify({ highscore: newHighscore }), 'utf8', (err) => {
+    if (highscore > currentHighscore) {
+      fs.writeFile(highscoreFile, JSON.stringify({ highscore }), 'utf8', (err) => {
         if (err) {
           return res.status(500).json({ error: 'Error writing highscore file' });
         }
-        res.json({ highscore: newHighscore });
+        res.json({ highscore });
       });
     } else {
       res.json({ highscore: currentHighscore });
@@ -45,4 +49,4 @@ app.post('/api/highscore/post', (req, res) => {
   });
 });
 
-export default app;
+module.exports = app;
