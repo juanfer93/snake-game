@@ -12,7 +12,7 @@ app.use(express.json());
 
 const port = process.env.PORT;
 
-const highscoreFile = path.resolve('./public/highscore.json');
+const highscoreFile = path.join(__dirname, '../../public/highscore.json');
 
 if (!fs.existsSync(highscoreFile)) {
   fs.writeFileSync(highscoreFile, JSON.stringify({ highscore: 0 }), 'utf8');
