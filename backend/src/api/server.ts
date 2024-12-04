@@ -1,10 +1,18 @@
-import dotenv from 'dotenv';
 import express from 'express';
+import cors from 'cors';
 import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
 app.use(express.json());
+
+const frontendUrl = process.env.FRONTEND_URL;
+
+app.use(cors({
+  origin: frontendUrl,
+  methods: ['GET', 'POST'],
+}));
 
 const port = process.env.PORT;
 const mongoUri = process.env.MONGODB_URI as string;
