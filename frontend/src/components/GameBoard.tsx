@@ -85,6 +85,9 @@ const GameBoard: React.FC = () => {
   };
 
   const handleTouchStart = (e: TouchEvent) => {
+    if (isPaused) {
+      setIsPaused(false);
+    }
     const touch = e.touches[0];
     touchStartRef.current = { x: touch.clientX, y: touch.clientY };
   };
@@ -114,7 +117,7 @@ const GameBoard: React.FC = () => {
       }
     }
 
-    touchStartRef.current = null; 
+    touchStartRef.current = null;
   };
 
   useEffect(() => {
@@ -221,7 +224,7 @@ const GameBoard: React.FC = () => {
           Game Over! Press "Space" to restart.
         </div>
         <div className={`pause ${isPaused && !gameOver ? 'show' : ''}`}>
-          Paused. Press "Space" to start.
+          Paused. Tap anywhere to start.
         </div>
         {bonus && <div className="bonus-timer">Bonus Time: {bonusCountdown}s</div>}
       </div>
