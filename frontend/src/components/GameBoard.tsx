@@ -136,7 +136,7 @@ const GameBoard: React.FC = () => {
         gameBoardElement.removeEventListener('touchend', handleTouchEnd as EventListener);
       }
     };
-  }, [direction]);  
+  }, [direction]);
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_API_URL}/highscore/get`)
