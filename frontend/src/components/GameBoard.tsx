@@ -1,5 +1,4 @@
-// src/components/GameBoard.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Snake from './Snake';
 import Food from './Food';
 import Score from './Score';
@@ -45,7 +44,8 @@ const GameBoard: React.FC = () => {
     resetGame,
   } = useGameStore();
 
-  
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
   const handleKeyDown = (e: KeyboardEvent) => {
     switch (e.key) {
       case 'ArrowUp':
@@ -76,12 +76,45 @@ const GameBoard: React.FC = () => {
         if (gameOver) {
           resetGame();
         } else {
-          setIsPaused((prev) => !prev); 
+          setIsPaused((prev) => !prev);
         }
         break;
       default:
         break;
     }
+  };
+
+  const handleTouchStart = (e: TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleTouchEnd = (e: TouchEvent) => {
+    if (!touchStartRef.current) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      if (deltaX > 0 && direction !== 'LEFT') {
+        setPrevDirection(direction);
+        setDirection('RIGHT');
+      } else if (deltaX < 0 && direction !== 'RIGHT') {
+        setPrevDirection(direction);
+        setDirection('LEFT');
+      }
+    } else {
+      if (deltaY > 0 && direction !== 'UP') {
+        setPrevDirection(direction);
+        setDirection('DOWN');
+      } else if (deltaY < 0 && direction !== 'DOWN') {
+        setPrevDirection(direction);
+        setDirection('UP');
+      }
+    }
+
+    touchStartRef.current = null; 
   };
 
   useEffect(() => {
@@ -91,14 +124,27 @@ const GameBoard: React.FC = () => {
     };
   }, [direction, isPaused, gameOver]);
 
-  
+  useEffect(() => {
+    const gameBoardElement = document.querySelector('.game-board');
+    if (gameBoardElement) {
+      gameBoardElement.addEventListener('touchstart', handleTouchStart as EventListener);
+      gameBoardElement.addEventListener('touchend', handleTouchEnd as EventListener);
+    }
+    return () => {
+      if (gameBoardElement) {
+        gameBoardElement.removeEventListener('touchstart', handleTouchStart as EventListener);
+        gameBoardElement.removeEventListener('touchend', handleTouchEnd as EventListener);
+      }
+    };
+  }, [direction]);  
+
   useEffect(() => {
     fetch(`${process.env.REACT_APP_API_URL}/highscore/get`)
       .then((response) => response.json())
       .then((data) => setHighscore(data.highscore))
       .catch((error) => console.error('Error fetching highscore:', error));
   }, []);
-  
+
   useEffect(() => {
     if (score > highscore) {
       fetch(`${process.env.REACT_APP_API_URL}/highscore/post`, {
@@ -110,7 +156,7 @@ const GameBoard: React.FC = () => {
         .then((data) => setHighscore(data.highscore))
         .catch((error) => console.error('Error updating highscore:', error));
     }
-  }, [score]);  
+  }, [score]);
 
   useInterval(() => {
     if (isPaused || gameOver) return;
@@ -124,17 +170,15 @@ const GameBoard: React.FC = () => {
       return;
     }
 
-    
     if (newSnake[0].x === food.x && newSnake[0].y === food.y) {
       setSnake([...newSnake, newSnake[newSnake.length - 1]]);
       setFood(getRandomFoodPosition(newSnake));
       setScore(score + 1);
-      setSpeed(Math.max(50, speed - 8)); 
+      setSpeed(Math.max(50, speed - 8));
       setFoodCount(foodCount + 1);
       setHeadColorChanged(true);
       setTimeout(() => setHeadColorChanged(false), 300);
 
-      
       if ((foodCount + 1) % BONUS_FREQUENCY === 0) {
         setBonus(getRandomFoodPosition(newSnake));
         setBonusCountdown(BONUS_START_TIME);
@@ -144,7 +188,6 @@ const GameBoard: React.FC = () => {
       setSnake(newSnake);
     }
 
-    
     if (bonus && newSnake[0].x === bonus.x && newSnake[0].y === bonus.y) {
       setScore(score + bonusCountdown * BONUS_MULTIPLIER);
       setBonus(null);
@@ -154,7 +197,6 @@ const GameBoard: React.FC = () => {
     }
   }, gameOver || isPaused ? null : speed);
 
-  
   useInterval(() => {
     if (isBonusActive && bonus) {
       if (bonusCountdown > 0) {
@@ -182,10 +224,9 @@ const GameBoard: React.FC = () => {
           Paused. Press "Space" to start.
         </div>
         {bonus && <div className="bonus-timer">Bonus Time: {bonusCountdown}s</div>}
-        {gameOver && <div className="game-over">Game Over!</div>}
       </div>
     </div>
-  );   
+  );
 };
 
 export default GameBoard;
