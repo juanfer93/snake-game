@@ -1,55 +1,51 @@
 import dotenv from 'dotenv';
+import express from 'express';
+import { MongoClient } from 'mongodb';
 dotenv.config();
 
-import express from 'express';
-import fs from 'fs';
-import path from 'path';
-import cors from 'cors';
-
 const app = express();
-app.use(cors());
 app.use(express.json());
 
 const port = process.env.PORT;
+const mongoUri = process.env.MONGODB_URI as string;
 
-const highscoreFile = path.join(__dirname, '../../data/highscore.json');
+MongoClient.connect(mongoUri)
+  .then((client) => {
+    console.log('Connected to MongoDB');
+    const db = client.db('gameData');
+    const highscoreCollection = db.collection('highscore');
 
-if (!fs.existsSync(highscoreFile)) {
-  fs.mkdirSync(path.dirname(highscoreFile), { recursive: true });
-  fs.writeFileSync(highscoreFile, JSON.stringify({ highscore: 0 }), 'utf8');
-}
+    app.get('/api/highscore/get', async (req, res) => {
+      try {
+        const highscoreDoc = await highscoreCollection.findOne({});
+        res.json({ highscore: highscoreDoc?.highscore || 0 });
+      } catch (err) {
+        res.status(500).json({ error: 'Error fetching highscore' });
+      }
+    });
 
-app.get('/api/highscore/get', (req, res) => {
-  fs.readFile(highscoreFile, 'utf8', (err, data) => {
-    if (err) {
-      return res.status(500).json({ error: 'Error reading highscore file', details: err.message });
-    }
-    res.json(JSON.parse(data));
-  });
-});
-
-app.post('/api/highscore/post', (req, res) => {
-  const { highscore } = req.body;
-
-  fs.readFile(highscoreFile, 'utf8', (err, data) => {
-    if (err) {
-      return res.status(500).json({ error: 'Error reading highscore file' });
-    }
-
-    const currentHighscore = JSON.parse(data).highscore;
-
-    if (highscore > currentHighscore) {
-      fs.writeFile(highscoreFile, JSON.stringify({ highscore }), 'utf8', (err) => {
-        if (err) {
-          return res.status(500).json({ error: 'Error writing highscore file' });
+    app.post('/api/highscore/post', async (req, res) => {
+      const { highscore } = req.body;
+      try {
+        const currentHighscore = await highscoreCollection.findOne({});
+        if (currentHighscore?.highscore < highscore) {
+          await highscoreCollection.updateOne(
+            {},
+            { $set: { highscore } },
+            { upsert: true }
+          );
+          res.json({ highscore });
+        } else {
+          res.json({ highscore: currentHighscore?.highscore });
         }
-        res.json({ highscore });
-      });
-    } else {
-      res.json({ highscore: currentHighscore });
-    }
+      } catch (err) {
+        res.status(500).json({ error: 'Error updating highscore' });
+      }
+    });
+  })
+  .catch((err) => {
+    console.error('Error connecting to MongoDB', err);
   });
-});
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
