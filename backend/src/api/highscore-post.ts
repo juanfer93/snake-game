@@ -9,7 +9,8 @@ let client: MongoClient | null = null;
 
 const connectToDatabase = async () => {
   if (client) return client;
-  client = await MongoClient.connect(mongoUri);
+  client = new MongoClient(mongoUri);
+  await client.connect();
   return client;
 };
 
@@ -40,8 +41,6 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     } else {
       res.json({ highscore: currentHighscore?.highscore });
     }
-
-    client.close();
   } catch (error) {
     res.status(500).json({ error: 'Error updating highscore' });
   }
