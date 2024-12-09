@@ -6,6 +6,22 @@ dotenv.config();
 
 const mongoUri = process.env.MONGODB_URI as string;
 
+let cachedHighscore: number | null = null; 
+
+const updateHighscoreInDb = async (newHighscore: number) => {
+  const client = new MongoClient(mongoUri);
+  await client.connect();
+  const db = client.db('gameData');
+  const highscoreCollection = db.collection('highscore');
+
+  await highscoreCollection.updateOne(
+    {},
+    { $set: { highscore: newHighscore } },
+    { upsert: true }
+  );
+  await client.close();
+};
+
 export default async (req: VercelRequest, res: VercelResponse) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -18,24 +34,12 @@ export default async (req: VercelRequest, res: VercelResponse) => {
   }
 
   try {
-    const client = new MongoClient(mongoUri);
-    await client.connect(); 
-    const db = client.db('gameData');
-    const highscoreCollection = db.collection('highscore');
-
-    const currentHighscore = await highscoreCollection.findOne({});
-    if (currentHighscore?.highscore < highscore) {
-      await highscoreCollection.updateOne(
-        {},
-        { $set: { highscore } },
-        { upsert: true }
-      );
-      res.json({ highscore });
-    } else {
-      res.json({ highscore: currentHighscore?.highscore });
+    if (cachedHighscore === null || highscore > cachedHighscore) {
+      cachedHighscore = highscore;
+      await updateHighscoreInDb(highscore); 
     }
 
-    await client.close(); 
+    res.json({ highscore: cachedHighscore });
   } catch (error) {
     console.error('Error updating highscore:', error);
     res.status(500).json({ error: 'Error updating highscore' });
