@@ -5,14 +5,6 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const mongoUri = process.env.MONGODB_URI as string;
-let client: MongoClient | null = null;
-
-const connectToDatabase = async () => {
-  if (client) return client;
-  client = new MongoClient(mongoUri);
-  await client.connect();
-  return client;
-};
 
 export default async (req: VercelRequest, res: VercelResponse) => {
   if (req.method !== 'POST') {
@@ -26,7 +18,8 @@ export default async (req: VercelRequest, res: VercelResponse) => {
   }
 
   try {
-    const client = await connectToDatabase();
+    const client = new MongoClient(mongoUri);
+    await client.connect(); 
     const db = client.db('gameData');
     const highscoreCollection = db.collection('highscore');
 
@@ -41,7 +34,10 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     } else {
       res.json({ highscore: currentHighscore?.highscore });
     }
+
+    await client.close(); 
   } catch (error) {
+    console.error('Error updating highscore:', error);
     res.status(500).json({ error: 'Error updating highscore' });
   }
 };
