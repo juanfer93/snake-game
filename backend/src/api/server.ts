@@ -7,10 +7,14 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-const frontendUrl = process.env.FRONTEND_URL;
-
 app.use(cors({
-  origin: frontendUrl,
+  origin: (origin, callback) => {
+    if (!origin || origin === process.env.FRONTEND_URL) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST'],
 }));
 
