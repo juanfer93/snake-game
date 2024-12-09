@@ -8,7 +8,7 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
+      "src": "/api/(highscore-post|highscore-get)",
       "dest": "/src/api/$1.ts"
     }
   ]
