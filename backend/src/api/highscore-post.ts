@@ -1,26 +1,13 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { MongoClient } from 'mongodb';
+import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const mongoUri = process.env.MONGODB_URI as string;
+const supabaseUrl = process.env.SUPABASE_URL as string;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 
-let cachedHighscore: number | null = null; 
-
-const updateHighscoreInDb = async (newHighscore: number) => {
-  const client = new MongoClient(mongoUri);
-  await client.connect();
-  const db = client.db('gameData');
-  const highscoreCollection = db.collection('highscore');
-
-  await highscoreCollection.updateOne(
-    {},
-    { $set: { highscore: newHighscore } },
-    { upsert: true }
-  );
-  await client.close();
-};
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async (req: VercelRequest, res: VercelResponse) => {
   if (req.method !== 'POST') {
@@ -34,14 +21,25 @@ export default async (req: VercelRequest, res: VercelResponse) => {
   }
 
   try {
-    if (cachedHighscore === null || highscore > cachedHighscore) {
-      cachedHighscore = highscore;
-      await updateHighscoreInDb(highscore); 
-    }
+    const { data: currentHighscore, error: fetchError } = await supabase
+      .from('highscore')
+      .select('highscore')
+      .single();
 
-    res.json({ highscore: cachedHighscore });
+    if (fetchError) throw fetchError;
+
+    if (!currentHighscore || currentHighscore.highscore < highscore) {
+      const { error: updateError } = await supabase
+        .from('highscore')
+        .upsert({ highscore });
+
+      if (updateError) throw updateError;
+
+      res.json({ highscore });
+    } else {
+      res.json({ highscore: currentHighscore.highscore });
+    }
   } catch (error) {
-    console.error('Error updating highscore:', error);
     res.status(500).json({ error: 'Error updating highscore' });
   }
 };
