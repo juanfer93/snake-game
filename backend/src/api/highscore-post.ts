@@ -33,7 +33,7 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     const { data: currentData, error: fetchError } = await supabase
       .from('highscore')
       .select('id, highscore')
-      .single(); 
+      .single();  
 
     if (fetchError && fetchError.details !== 'Results contain 0 rows') {
       console.error('Error fetching highscore:', fetchError);
@@ -41,7 +41,7 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     }
 
     if (!currentData) {
-      const newUUID = uuidv4(); 
+      const newUUID = uuidv4();  
       const { error: insertError } = await supabase
         .from('highscore')
         .insert([{ id: newUUID, highscore }]);
@@ -51,8 +51,10 @@ export default async (req: VercelRequest, res: VercelResponse) => {
         throw insertError;
       }
 
-      res.json({ highscore, message: 'New highscore created' });
-    } else if (currentData.highscore < highscore) {
+      return res.json({ highscore, message: 'New highscore created' });
+    }
+
+    if (currentData.highscore < highscore) {
       const { error: updateError } = await supabase
         .from('highscore')
         .update({ highscore })
@@ -63,12 +65,12 @@ export default async (req: VercelRequest, res: VercelResponse) => {
         throw updateError;
       }
 
-      res.json({ highscore, message: 'Highscore updated' });
-    } else {
-      res.json({ highscore: currentData.highscore, message: 'Highscore not updated' });
+      return res.json({ highscore, message: 'Highscore updated' });
     }
+
+    return res.json({ highscore: currentData.highscore, message: 'Highscore not updated' });
   } catch (error) {
     console.error('Error updating highscore:', error);
-    res.status(500).json({ error: 'Error updating highscore' });
+    return res.status(500).json({ error: 'Error updating highscore' });
   }
 };
