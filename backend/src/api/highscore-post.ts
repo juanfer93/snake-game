@@ -33,10 +33,10 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     const { data: currentData, error: fetchError } = await supabase
       .from('highscore')
       .select('id, highscore')
-      .limit(1)
       .single(); 
 
     if (fetchError && fetchError.details !== 'Results contain 0 rows') {
+      console.error('Error fetching highscore:', fetchError);
       throw fetchError;
     }
 
@@ -46,7 +46,10 @@ export default async (req: VercelRequest, res: VercelResponse) => {
         .from('highscore')
         .insert([{ id: newUUID, highscore }]);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Error inserting new highscore:', insertError);
+        throw insertError;
+      }
 
       res.json({ highscore, message: 'New highscore created' });
     } else if (currentData.highscore < highscore) {
@@ -55,7 +58,10 @@ export default async (req: VercelRequest, res: VercelResponse) => {
         .update({ highscore })
         .eq('id', currentData.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating highscore:', updateError);
+        throw updateError;
+      }
 
       res.json({ highscore, message: 'Highscore updated' });
     } else {
