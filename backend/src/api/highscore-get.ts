@@ -14,18 +14,20 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     const { data, error } = await supabase
       .from('highscore')
       .select('highscore')
-      .limit(1)
-      .single();
+      .limit(1); 
 
     if (error) {
       console.error('Supabase error:', error);
       throw error;
     }
 
-    res.json({ highscore: data?.highscore || 0 });
+    const highscore = data.length > 0 ? data[0].highscore : 0;
+
+    res.json({ highscore });
   } catch (error) {
     console.error('Server error:', error);
     res.status(500).json({ error: 'Error fetching highscore' });
   }
 };
+
 
