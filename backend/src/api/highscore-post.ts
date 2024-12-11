@@ -60,6 +60,7 @@ export default async (req: VercelRequest, res: VercelResponse) => {
         throw updateError;
       }
 
+      console.log('Response Data:', { highscore, message: 'Highscore updated' });
       return res.json({ highscore, message: 'Highscore updated' });
     }
 
