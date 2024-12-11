@@ -1,6 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
 
@@ -29,23 +30,36 @@ export default async (req: VercelRequest, res: VercelResponse) => {
   }
 
   try {
-    const { data: currentHighscore, error: fetchError } = await supabase
+    const { data: currentData, error: fetchError } = await supabase
       .from('highscore')
-      .select('highscore')
-      .single();
+      .select('id, highscore')
+      .limit(1)
+      .single(); 
 
-    if (fetchError) throw fetchError;
+    if (fetchError && fetchError.details !== 'Results contain 0 rows') {
+      throw fetchError;
+    }
 
-    if (!currentHighscore || currentHighscore.highscore < highscore) {
+    if (!currentData) {
+      const newUUID = uuidv4(); 
+      const { error: insertError } = await supabase
+        .from('highscore')
+        .insert([{ id: newUUID, highscore }]);
+
+      if (insertError) throw insertError;
+
+      res.json({ highscore, message: 'New highscore created' });
+    } else if (currentData.highscore < highscore) {
       const { error: updateError } = await supabase
         .from('highscore')
-        .upsert({ highscore });
+        .update({ highscore })
+        .eq('id', currentData.id);
 
       if (updateError) throw updateError;
 
-      res.json({ highscore });
+      res.json({ highscore, message: 'Highscore updated' });
     } else {
-      res.json({ highscore: currentHighscore.highscore });
+      res.json({ highscore: currentData.highscore, message: 'Highscore not updated' });
     }
   } catch (error) {
     console.error('Error updating highscore:', error);
