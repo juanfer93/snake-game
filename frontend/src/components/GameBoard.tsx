@@ -142,24 +142,37 @@ const GameBoard: React.FC = () => {
   }, [direction]);
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL}/highscore/get`)
-      .then((response) => response.json())
+    fetch(`${process.env.REACT_APP_API_URL}/highscore-get`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch highscore');
+        }
+        return response.json();
+      })
       .then((data) => setHighscore(data.highscore))
       .catch((error) => console.error('Error fetching highscore:', error));
   }, []);
-
+  
   useEffect(() => {
     if (score > highscore) {
-      fetch(`${process.env.REACT_APP_API_URL}/highscore/post`, {
+      fetch(`${process.env.REACT_APP_API_URL}/highscore-post`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ highscore: score }),
       })
-        .then((response) => response.json())
-        .then((data) => setHighscore(data.highscore))
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('Failed to update highscore');
+          }
+          return response.json();
+        })
+        .then((data) => {
+          console.log('Highscore updated:', data.highscore);
+          setHighscore(data.highscore);
+        })
         .catch((error) => console.error('Error updating highscore:', error));
     }
-  }, [score]);
+  }, [score, highscore]);  
 
   useInterval(() => {
     if (isPaused || gameOver) return;
