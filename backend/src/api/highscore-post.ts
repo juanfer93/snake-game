@@ -35,41 +35,41 @@ export default async (req: VercelRequest, res: VercelResponse) => {
       .select('id, highscore')
       .single();
 
-    if (fetchError && fetchError.details === 'Results contain 0 rows') {
-      const newUUID = uuidv4();
-      const { data: newRecord, error: insertError } = await supabase
+    if (fetchError && fetchError.message.includes('No rows')) {
+      const { error: insertError } = await supabase
         .from('highscore')
-        .insert([{ id: newUUID, highscore }])
-        .select('highscore')
-        .single();
+        .insert([{ id: uuidv4(), highscore }]);
 
       if (insertError) {
         console.error('Error inserting new highscore:', insertError);
-        throw insertError;
+        return res.status(500).json({ error: 'Error inserting new highscore' });
       }
 
-      return res.json({ highscore: newRecord.highscore, message: 'New highscore created' });
+      return res.status(201).json({ highscore, message: 'New highscore created' });
     }
 
     if (currentData && currentData.highscore < highscore) {
-      const { data: updatedRecord, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('highscore')
         .update({ highscore })
-        .eq('id', currentData.id)
-        .select('highscore')
-        .single();
+        .eq('id', currentData.id);
 
       if (updateError) {
         console.error('Error updating highscore:', updateError);
-        throw updateError;
+        return res.status(500).json({ error: 'Error updating highscore' });
       }
 
-      return res.json({ highscore: updatedRecord.highscore, message: 'Highscore updated' });
+      return res.status(200).json({ highscore, message: 'Highscore updated' });
     }
 
-    return res.json({ highscore: currentData?.highscore, message: 'Highscore not updated' });
+    return res.status(200).json({
+      highscore: currentData?.highscore || 0,
+      message: 'Highscore not updated (no higher score)',
+    });
+
   } catch (error) {
-    console.error('Error updating highscore:', error);
-    return res.status(500).json({ error: 'Error updating highscore' });
+    console.error('Unexpected error:', error);
+    return res.status(500).json({ error: 'Unexpected error' });
   }
 };
+
