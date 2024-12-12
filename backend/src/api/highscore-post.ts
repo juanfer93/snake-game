@@ -1,14 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
 import { v4 as uuidv4 } from 'uuid';
 
-dotenv.config();
-
-const supabaseUrl = process.env.SUPABASE_URL as string;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
 
 export default async (req: VercelRequest, res: VercelResponse) => {
   res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*');
@@ -35,20 +29,30 @@ export default async (req: VercelRequest, res: VercelResponse) => {
       .select('id, highscore')
       .single();
 
-    if (fetchError && fetchError.message.includes('No rows')) {
-      const { error: insertError } = await supabase
-        .from('highscore')
-        .insert([{ id: uuidv4(), highscore }]);
+    if (fetchError) {
+      if (fetchError.message.includes('No rows')) {
+        const { error: insertError } = await supabase
+          .from('highscore')
+          .insert([{ id: uuidv4(), highscore }]);
 
-      if (insertError) {
-        console.error('Error inserting new highscore:', insertError);
-        return res.status(500).json({ error: 'Error inserting new highscore' });
+        if (insertError) {
+          console.error('Error inserting new highscore:', insertError);
+          return res.status(500).json({ error: 'Error inserting new highscore' });
+        }
+
+        return res.status(201).json({ highscore, message: 'New highscore created' });
       }
 
-      return res.status(201).json({ highscore, message: 'New highscore created' });
+      console.error('Error fetching highscore:', fetchError);
+      return res.status(500).json({ error: 'Error fetching highscore' });
     }
 
-    if (currentData && currentData.highscore < highscore) {
+    if (!currentData) {
+      console.error('Unexpected: No data returned and no error.');
+      return res.status(500).json({ error: 'Unexpected error fetching highscore' });
+    }
+
+    if (currentData.highscore < highscore) {
       const { error: updateError } = await supabase
         .from('highscore')
         .update({ highscore })
@@ -63,7 +67,7 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     }
 
     return res.status(200).json({
-      highscore: currentData?.highscore || 0,
+      highscore: currentData.highscore,
       message: 'Highscore not updated (no higher score)',
     });
 
@@ -72,4 +76,3 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     return res.status(500).json({ error: 'Unexpected error' });
   }
 };
-
