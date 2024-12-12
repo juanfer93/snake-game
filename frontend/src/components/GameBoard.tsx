@@ -167,7 +167,6 @@ const GameBoard: React.FC = () => {
           return response.json();
         })
         .then((data) => {
-          console.log('Highscore updated:', data.highscore);
           if (data.highscore !== undefined) {
             setHighscore(data.highscore);
           } else {
@@ -177,10 +176,6 @@ const GameBoard: React.FC = () => {
         .catch((error) => console.error('Error updating highscore:', error));
     }
   }, [score, highscore]);
-  
-  useEffect(() => {
-    console.log('Updated Highscore in State:', highscore);
-  }, [highscore]);  
 
   useInterval(() => {
     if (isPaused || gameOver) return;
