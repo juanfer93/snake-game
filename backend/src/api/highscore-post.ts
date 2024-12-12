@@ -1,8 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { v4 as uuidv4 } from 'uuid';
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 export default async (req: VercelRequest, res: VercelResponse) => {
   res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*');
@@ -26,37 +25,20 @@ export default async (req: VercelRequest, res: VercelResponse) => {
   try {
     const { data: currentData, error: fetchError } = await supabase
       .from('highscore')
-      .select('id, highscore')
+      .select('highscore')
+      .eq('id', 1)
       .single();
 
-    if (fetchError) {
-      if (fetchError.message.includes('No rows')) {
-        const { error: insertError } = await supabase
-          .from('highscore')
-          .insert([{ id: uuidv4(), highscore }]);
-
-        if (insertError) {
-          console.error('Error inserting new highscore:', insertError);
-          return res.status(500).json({ error: 'Error inserting new highscore' });
-        }
-
-        return res.status(201).json({ highscore, message: 'New highscore created' });
-      }
-
-      console.error('Error fetching highscore:', fetchError);
+    if (fetchError || !currentData) {
+      console.error('Error fetching highscore:', fetchError || 'No data found');
       return res.status(500).json({ error: 'Error fetching highscore' });
-    }
-
-    if (!currentData) {
-      console.error('Unexpected: No data returned and no error.');
-      return res.status(500).json({ error: 'Unexpected error fetching highscore' });
     }
 
     if (currentData.highscore < highscore) {
       const { error: updateError } = await supabase
         .from('highscore')
         .update({ highscore })
-        .eq('id', currentData.id);
+        .eq('id', 1);
 
       if (updateError) {
         console.error('Error updating highscore:', updateError);
