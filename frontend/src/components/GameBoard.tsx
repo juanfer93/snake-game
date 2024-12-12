@@ -168,11 +168,19 @@ const GameBoard: React.FC = () => {
         })
         .then((data) => {
           console.log('Highscore updated:', data.highscore);
-          setHighscore(data.highscore);
+          if (data.highscore !== undefined) {
+            setHighscore(data.highscore);
+          } else {
+            console.error('Highscore not returned by backend');
+          }
         })
         .catch((error) => console.error('Error updating highscore:', error));
     }
-  }, [score, highscore]);  
+  }, [score, highscore]);
+  
+  useEffect(() => {
+    console.log('Updated Highscore in State:', highscore);
+  }, [highscore]);  
 
   useInterval(() => {
     if (isPaused || gameOver) return;

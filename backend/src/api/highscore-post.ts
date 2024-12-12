@@ -33,39 +33,41 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     const { data: currentData, error: fetchError } = await supabase
       .from('highscore')
       .select('id, highscore')
-      .single();  
+      .single();
 
     if (fetchError && fetchError.details === 'Results contain 0 rows') {
-      const newUUID = uuidv4();  
-      const { error: insertError } = await supabase
+      const newUUID = uuidv4();
+      const { data: newRecord, error: insertError } = await supabase
         .from('highscore')
-        .insert([{ id: newUUID, highscore }]);
+        .insert([{ id: newUUID, highscore }])
+        .select('highscore')
+        .single();
 
       if (insertError) {
         console.error('Error inserting new highscore:', insertError);
         throw insertError;
       }
 
-      return res.json({ highscore, message: 'New highscore created' });
+      return res.json({ highscore: newRecord.highscore, message: 'New highscore created' });
     }
 
     if (currentData && currentData.highscore < highscore) {
-      const { error: updateError } = await supabase
+      const { data: updatedRecord, error: updateError } = await supabase
         .from('highscore')
         .update({ highscore })
-        .eq('id', currentData.id);
+        .eq('id', currentData.id)
+        .select('highscore')
+        .single();
 
       if (updateError) {
         console.error('Error updating highscore:', updateError);
         throw updateError;
       }
 
-      console.log('Response Data:', { highscore, message: 'Highscore updated' });
-      return res.json({ highscore, message: 'Highscore updated' });
+      return res.json({ highscore: updatedRecord.highscore, message: 'Highscore updated' });
     }
 
     return res.json({ highscore: currentData?.highscore, message: 'Highscore not updated' });
-
   } catch (error) {
     console.error('Error updating highscore:', error);
     return res.status(500).json({ error: 'Error updating highscore' });
